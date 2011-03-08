@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Language" content="en-us" />
+    <meta name="keywords" content="" />
+    <meta name="author" content="" />
+    <meta name="description" content="">
+    <link rel="icon"  type="image/png" href="/images/favicon.ico" />
+    <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+
+    <title>Say Your Price</title>
+    <%= stylesheet_link_tag "reset", "global", "notification", "lightbox" %>
+    <%= javascript_include_tag "prototype", "lightbox", "scriptaculous.js?load=effects,builder" %>
+    <%= javascript_include_tag "application", "jquery-1.4.2", "jquery.bar", "jcarousellite_1.0.1c4" %>
+
+    <% javascript_tag do %>
+        jQuery.noConflict();
+        jQuery(function() {
+            jQuery("#newsticker-jcarousellite").jCarouselLite({
+                btnPlay: ".play", btnPause: ".pause", vertical: true, hoverPause:true,
+                stop: false, visible: 3, auto:2000, speed:2300
+            });
+        });
+    <% end %>
+
+    <%= include_visualization_api %>
+    <%= yield :head %>
+  </head>
+
+  <body>
+    <%= content_tag(:div, nil, :id => "notification", :class => "message-notification") %>
+    <div id="layout">
+        <div id="header">
+            <a class="logo" href="/">GAP</a>
+            <ul>
+                <%= content_tag(:li, link_to('Home', root_path)) if request.path != root_path %>
+                <% if logged_in? %>
+                    <%= content_tag(:li, link_to('Sign Out', logout_path)) %>
+                <% else %>
+                    <%= content_tag(:li, link_to("Say Your Price", say_your_price_path), :class => ([say_your_price_path].include? request.path) ? "current" : nil) %>
+                    <%= content_tag(:li, link_to("Winners", winners_path), :class => ([winners_path].include? request.path) ? "current" : nil) %>
+                <% end %>
+            </ul>
+        </div><!-- #header -->
+
+        <% content_tag :div, :id => "content" do %>
+            <%= @content_for_layout %>
+        <% end %>
+
+        <div id="footer">
+            <div class="copyright">&copy; 2011 Gap Inc.</div>
+            <% content_tag :ul do %>
+                <%= content_tag(:li, "engine by dealkat") %>
+                <%  if logged_in? %>
+                  <%= content_tag(:li, link_to("Edit Profile", profile_path), :class => ([profile_path].include? request.path) ? "current" : nil) if current_user.profile %>
+                  <%#= content_tag(:li, link_to("Download", download_emails_path)) if Payment.count(:conditions => "email IS NOT NULL and email <> ''").to_i > 0 %>
+                <% else %>
+                  <%#= content_tag(:li, link_to("FAQ", faqs_path), :class => ([faqs_path].include? request.path) ? "current" : nil) %>
+                <% end %>
+            <% end %>
+            <% if Profile.first %>
+              <address>
+                  <%= number_to_phone(Profile.first.phone, :delimiter => "-") + "; " %>
+                  <%= auto_link(Profile.first.email) %>
+              </address>
+            <% end %>
+        </div><!-- #footer -->
+    </div><!-- #layout -->
+    <% if flash[:error] or flash[:notice] %>
+      <% javascript_tag do %>
+          showNotification("<%= flash[:error] || flash[:notice] %>", 'error', 10000);
+          <% flash.discard %>
+      <% end %>
+    <% end %>
+  </body>
+</html>

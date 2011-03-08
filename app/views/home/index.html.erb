@@ -1,0 +1,19 @@
+<h1 class="home">Let's make a deal. Say your price.</h1>
+
+<div class="intro-steps">
+    <%= link_to(content_tag(:span, 1)+label_tag("14 pt Verdana, regular, This can contain 65 characters be here, t"), say_your_price_path) %>
+    <%= link_to(content_tag(:span, 2)+label_tag("14 pt Verdana, regular, This can contain 65 characters be here, t"), say_your_price_path) %>
+    <%= link_to(content_tag(:span, 3)+label_tag("14 pt Verdana, regular, This can contain 65 characters be here, t"), say_your_price_path) %>
+</div><!-- .steps -->
+
+<div class="intro-slides">
+    <%= link_to(image_tag("/images/samples/pants-303x460px-1.jpg"), say_your_price_path) %>
+    <%= link_to(image_tag("/images/samples/pants-303x460px-2.jpg"), say_your_price_path) %>
+    <%= link_to(image_tag("/images/samples/pants-303x460px-3.jpg"), say_your_price_path) %>
+    <div class="tl"></div><div class="tr"></div>
+    <div class="bl"></div><div class="br"></div>
+</div><!-- .intro-slides -->
+
+<p class="intro-ctrls">
+    <%= link_to(content_tag(:span, "Let's make a deal!"), say_your_price_path, :class => "button-green") %>
+</p>

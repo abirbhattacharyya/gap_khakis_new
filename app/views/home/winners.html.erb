@@ -1,0 +1,76 @@
+<% if @payments and @payments.size > 0 %>
+
+  <p class="feed-ctrl">
+    <a id="pause1" class="button pause">Pause</a>
+    <a id="play1" class="button play" style="display:none;">Play</a>
+  </p>
+
+        <div class="capsule2">
+            <div class="cinner" id="newsticker-jcarousellite">
+              <ul>
+                <%for payment in @payments%>
+                    <li>
+                      <p class="feed-informer">
+                        <%#= (payment.email and !payment.email.strip.blank?) ? auto_link(payment.email) : "Someone" %>
+                        A lucky Gap customer scored a great deal on a pair of <%= payment.offer.product.style_description.titleize %> (<%= payment.offer.product.color_description.titleize %>).
+                        Negotiated Price: <%= (payment.offer.price > 0) ? number_to_currency(payment.offer.price, :precision => 0) : "Free" %>;
+                        Reg. Price: <%= number_to_currency(payment.offer.product.ticketed_retail, :precision => 2) %><br />
+                        <span>Won on <%=payment.created_at.in_time_zone("Pacific Time (US & Canada)").strftime("%b %d, %I:%M %p %Z") %></span>
+                      </p>
+                      <p class="feed-ctrls">
+                          <%= content_tag(:span, button_to_function("Let's deal", "window.location.href='#{capsule_path(payment.offer.product.id)}'"), :class => "button-green") %>
+                          <span class="share-line">
+                              <%= link_to(image_tag("/images/icons/twitter-20x20px.gif", :size => "20x20", :alt => "Twitter", :title => "Twitter"), "http://twitter.com/home?status=I just scored a sweet deal on Gap khakis! You can too. Say your price now at www.gapmyprice.com", :target => "_new") %>
+                              <%= link_to(image_tag("/images/icons/facebook-20x20px.gif", :size => "20x20", :alt => "Facebook", :title => "Facebook"), "http://www.facebook.com/sharer.php?u=#{root_url}&t=Say your price", :target => "_new") %>
+                              <%#= link_to(image_tag("/images/icons/email-20x20px.gif", :size => "20x20", :alt => "Email", :title => "Email"), send_to_path(payment.offer.product.id)) %>
+                          </span>
+                          <span class="divider"></span>
+                      </p>
+                    </li>
+                <% end %>
+              </ul>
+            </div><!-- .cinner -->
+            <div class="ctl"></div><div class="ctc"></div><div class="ctr"></div>
+            <div class="cml"></div><div class="cmr"></div>
+            <div class="cbl"></div><div class="cbc"></div><div class="cbr"></div>
+        </div><!-- .capsule -->
+
+  <p class="feed-ctrl">
+    <a id="pause2" class="button pause">Pause</a>
+    <a id="play2" class="button play" style="display:none;">Play</a>
+  </p>
+
+  <% javascript_tag do -%>
+    $('play1').hide();
+    $('play2').hide();
+    var bindplaypause = function(){
+      jQuery('#play1').bind('click', function(event){
+          $('pause1').show();
+          $('play1').hide();
+          $('pause2').show();
+          $('play2').hide();
+      });
+      jQuery('#play2').bind('click', function(event){
+          $('pause1').show();
+          $('play1').hide();
+          $('pause2').show();
+          $('play2').hide();
+      });
+      jQuery('#pause1').bind('click', function(event){
+          $('play1').show();
+          $('pause1').hide();
+          $('play2').show();
+          $('pause2').hide();
+      });
+      jQuery('#pause2').bind('click', function(event){
+          $('play1').show();
+          $('pause1').hide();
+          $('play2').show();
+          $('pause2').hide();
+      });
+    }
+    bindplaypause();
+  <%end%>
+<% else %>
+  <div style="height: 200px;"></div>
+<% end %>
