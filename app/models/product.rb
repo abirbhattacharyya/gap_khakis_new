@@ -4,6 +4,14 @@ class Product < ActiveRecord::Base
 
   validates_uniqueness_of :style_description, :scope => [:user_id, :color_description]
 
+  def new_price_points
+    if(self.ticketed_retail == 49.5)
+      PromotionCode::PRICE_CODES_50
+    else
+      PromotionCode::PRICE_CODES_60
+    end
+  end
+
   def color
     self.color_description.gsub(/\d+/, '').strip
   end
