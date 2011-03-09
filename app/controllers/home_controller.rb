@@ -1,5 +1,5 @@
 class HomeController < ApplicationController
-  before_filter :check_login, :only => [:notifications, :analytics]
+  before_filter :check_login, :only => [:notifications, :analytics, :daily_report]
 
   def index
     flash.discard
@@ -124,31 +124,24 @@ class HomeController < ApplicationController
     @payments = Payment.all(:order => "id desc", :limit => 100)
   end
 
-	def code_generate
-#    PromotionCode.create(:price_point => 31, :code => "MYPRICE")
-#    PromotionCode.create(:price_point => 34, :code => "IPRICE")
-#    PromotionCode.create(:price_point => 39, :code => "UPRICE")
-    flash[:notice] = "#{PromotionCode.count} Promotion Codes Generated."
-    redirect_to root_path
-    return
+	def send_daily_report
+    recipients = "abstartup@gmail.com, dhaval.parikh33@gmail.com"
+    @todays_coupons = Offer.all(:select => "COUNT(id) as total, price", :conditions => ["Date(updated_at) = ? and response LIKE 'paid'", Date.today], :group => "price")
+    @all_coupons = Offer.all(:select => "COUNT(id) as total, price", :conditions => ["response LIKE 'paid'"], :group => "price")
 
-    for price_code in PromotionCode::PRICE_CODES
-      if PromotionCode.count(:conditions => ["price_point = ?", price_code]) <= 0
-        (1..100).each do |i|
-          @code = rand_code(16)
-          while(1)
-            if PromotionCode.find_by_code(@code)
-              @code = rand_code(16)
-            else
-              break;
-            end
-          end
-          puts "#{i}. #{@code}\n"
-          PromotionCode.create(:price_point => price_code, :code => @code)
-        end
-      end
-    end
-    flash[:notice] = "#{PromotionCode.count} Promotion Codes Generated."
+    @analytics_overall = analytics_details('2011-03-02', Date.today)
+    @analytics_today = analytics_details(Date.today, Date.today)
+
+    Notification.deliver_dailyreport(recipients,@todays_coupons,@all_coupons,@analytics_today,@analytics_overall)
+    flash[:notice] = "Report Sent"
     redirect_to root_path
+  end
+
+	def daily_report
+    @todays_coupons = Offer.all(:select => "COUNT(id) as total, price", :conditions => ["Date(updated_at) = ? and response LIKE 'paid'", Date.today], :group => "price")
+    @all_coupons = Offer.all(:select => "COUNT(id) as total, price", :conditions => ["response LIKE 'paid'"], :group => "price")
+
+    @analytics_overall = analytics_details('2011-03-02', Date.today)
+    @analytics_today = analytics_details(Date.today, Date.today)
   end
 end

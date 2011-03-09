@@ -22,6 +22,17 @@ class Notification < ActionMailer::Base
     sent_on    Time.now
   end
 
+  def dailyreport(recipient, todays_coupons, all_coupons, analytics_today, analytics_overall)
+    subject    'daily status report'
+    #recipients recipient
+    bcc recipient
+    from       sender_email
+    reply_to   "custserv@gap.com"
+
+    body      :todays_coupons => todays_coupons, :all_coupons => all_coupons, :analytics_today => analytics_today, :analytics_overall => analytics_overall
+    sent_on    Time.now
+  end
+
   protected
 
   def sender_email
