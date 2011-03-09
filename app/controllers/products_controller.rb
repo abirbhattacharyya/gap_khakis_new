@@ -69,30 +69,6 @@ class ProductsController < ApplicationController
       if params[:payment]
         @payment = Payment.find(params[:id])
         if @payment.update_attributes(params[:payment])
-          if [0,1,5].include? @payment.offer.price
-            @payments = Payment.find_all_by_email(@payment.email)
-            @found = false
-            if @payments.size > 1
-              for payment in @payments
-                if((payment.id != @payment.id) and (payment.offer.price == @payment.offer.price))
-                  @found = true
-                  break;
-                end
-              end
-            end
-            if @found == true
-              if @payment.offer.product.ticketed_retail.to_f == 49.5
-                @payment.offer.update_attribute(:price, 30)
-              else
-                @payment.offer.update_attribute(:price, 35)
-              end
-              @payment.promotion_code.update_attribute(:used, false)
-              @promotion_code = PromotionCode.first(:conditions => ["price_point = ? and used = 0", @payment.offer.price])
-              @payment.update_attribute(:promotion_code_id, @promotion_code.id)
-              @promotion_code.update_attribute(:used, true)
-              flash[:notice] = "hey only 1 free/$1/$5 per email"
-            end
-          end
           Notification.deliver_sendcoupon(@payment.email, @payment)
           return
         else
@@ -113,7 +89,8 @@ class ProductsController < ApplicationController
         @promotion_code = PromotionCode.first(:conditions => ["price_point = ? and used = 0", @offer.price])
         if @promotion_code
           @payment = Payment.create(:offer_id => @offer.id, :promotion_code_id => @promotion_code.id)
-          @promotion_code.update_attribute(:used, true)
+          @payment.update_attributes(:expiry => @payment.new_expiry_date)
+          @promotion_code.update_attribute(:used, true) unless [31,34,39].include? @offer.price.to_i
           @offer.update_attribute(:response, "paid")
         else
           flash[:notice] = "Sorry promotions over. Try again later"
@@ -239,7 +216,7 @@ class ProductsController < ApplicationController
                     elsif @last_offer.accepted?
                       flash[:notice] = "Cool, come on down to the store!"
                     else
-                      flash[:notice] = "Hey, we can do $#{@last_offer.price.ceil.to_i}? Deal?"
+                      flash[:notice] = "Hey, we can do #{(@last_offer.price.ceil.to_i > 0) ? "$#{@last_offer.price.ceil.to_i}" : "Free of cost"} ? Deal?"
                     end
                     return
                 else

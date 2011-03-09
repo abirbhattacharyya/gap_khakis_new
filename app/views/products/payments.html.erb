@@ -1,25 +1,27 @@
-<%# if @payment.email and !@payment.email.strip.blank?  %>
-<% if @payment  %>
 <h1>Congrats! You won a pair of khakis for <%= (@payment.offer.price > 0) ? number_to_currency(@payment.offer.price) : "Free" %>. See you at the store.</h1>
-<% else %>
-<h1>Enter your email id</h1>
-<% end %>
 <div class="columns">
     <div class="column wide">
-        <%# if @payment.email and !@payment.email.strip.blank?  %>
-        <% if @payment  %>
         <div class="capsule2 w550px">
           <div class="cinner">
               <h2>Coupon# <%=@payment.promotion_code.code %></h2>
               <div class="divider"></div>
               <p>
                   Your Price: <%= (@payment.offer.price > 0) ? number_to_currency(@payment.offer.price.ceil, :precision => 0) : "Free" %>
-                  <span class="expires">Expires: 3/31/11</span>
+                  <span class="expires">Expires: <%= @payment.expiry.strftime("%m/%d/%y") %></span>
               </p>
               <p>
                   <%= @payment.offer.product.style_description %> (<%= @payment.offer.product.color.titleize %>)<br>
                   Style#: <%= @payment.offer.product.style_num %>
               </p>
+              <% form_for :payment, :url => payments_path(@payment.id) do |f| %>
+                <p class="ctrl">
+                    <%= label_tag(:email, "Your email?") %>
+                    <%= f.text_field :email, :class => "w250px" %>
+                </p>
+                <p class="ctrls">
+                    <span class="button-green"><%= f.submit("Email my voucher") %></span>
+                </p>
+              <% end %>
               <p class="terms">
                   <b>Terms and Conditions:</b>
                   Offer valid in the U.S. only (including Puerto Rico) at Gap stores.
@@ -37,17 +39,5 @@
             <div class="cbl"></div><div class="cbc"></div><div class="cbr"></div>
         </div><!-- .capsule -->
         <%= content_tag(:span, button_to_function("Download PDF", "window.location.href='#{download_pdf_path(@payment.id)}'"), :class => "button-green small-font") %>
-        <% else %>
-            <% form_for :payment, :url => payments_path(@payment.id) do |f| %>
-              <p class="ctrl">
-                  <%= label_tag(:email, "Your email?") %>
-                  <%= f.text_field :email, :class => "w250px" %>
-              </p>
-              <p class="ctrls">
-                  <span class="button-green"><%= f.submit("Email my voucher") %></span>
-              </p>
-            <% end %>
-        <% end %>
-
     </div><!-- .column.wide -->
 </div><!-- .columns -->
