@@ -15,17 +15,16 @@ class Notification < ActionMailer::Base
     subject    'myprice coupon you requested'
     #recipients recipient
     bcc recipient
-    from       "myprice@gapmyprice.com"
+    from       sender_email
     reply_to   "custserv@gap.com"
 
     body      :payment => payment
     sent_on    Time.now
-    content_type 'text/html'
   end
 
   protected
 
   def sender_email
-      '"GapMyPrice" <email@gapmyprice.com>'
+      '"GapMyPrice" <myprice@gapmyprice.com>'
   end
 end
