@@ -4,6 +4,7 @@ require 'rubygems'
 require 'open-uri'
 require "csv"
 require 'pdf/writer'
+require 'gattica'
 
 class ApplicationController < ActionController::Base
   helper :all # include all helpers, all the time
