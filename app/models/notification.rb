@@ -11,14 +11,14 @@ class Notification < ActionMailer::Base
 #    content_type 'text/html'
   end
 
-  def sendcoupon(recipient)
+  def sendcoupon(recipient, payment)
     subject    'myprice coupon you requested'
     #recipients recipient
     bcc recipient
     from       "myprice@gapmyprice.com"
     reply_to   "custserv@gap.com"
 
-    #body      :payment => payment
+    body      :payment => payment
     sent_on    Time.now
     content_type 'text/html'
   end
