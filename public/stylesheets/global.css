@@ -447,7 +447,17 @@ INPUT[type="submit"] {
     padding-bottom: 4px;
     margin: .3em 0 .7em;
     }
-
+.capsule2.inline {
+   display: inline-block;
+   zoom:1;
+   *display:inline;
+   }
+.capsule2.addlink {
+   vertical-align: bottom;
+   margin-left: 15px;
+   display: inline-block;
+   width: 180px;
+   }
 .capsule2 A {
     color: DarkBlue;
     }
@@ -643,7 +653,13 @@ INPUT[type="submit"] {
     font-size: 10px;
     line-height: 1.3em;
     }
+.share-with {
+   margin-left: 1em;
+   }
 
+   .share-with IMG {
+       vertical-align: middle;
+       }
 /* -------------------------------------------------------------------------- */
 /* CSS solutions */
 
