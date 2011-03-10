@@ -125,8 +125,8 @@ class HomeController < ApplicationController
   end
 
 	def send_daily_report
-#    recipients = "abstartup@gmail.com, dhaval.parikh33@gmail.com"
-    recipients = "mailtoankitparekh@gmail.com, dhaval.parikh33@gmail.com"
+    recipients = "abstartup@gmail.com, dhaval.parikh33@gmail.com"
+#    recipients = "mailtoankitparekh@gmail.com, dhaval.parikh33@gmail.com"
     @today = Date.today-1.day
     @todays_coupons = Offer.all(:select => "COUNT(id) as total, price", :conditions => ["Date(updated_at) = ? and response LIKE 'paid'", @today], :group => "price")
     @all_coupons = Offer.all(:select => "COUNT(id) as total, price", :conditions => ["response LIKE 'paid'"], :group => "price")
