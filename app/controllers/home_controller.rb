@@ -25,6 +25,7 @@ class HomeController < ApplicationController
   end
 
   def analytics
+    @today = Date.today-1.day
     if request.post?
       @page = params[:page].to_i
     else
@@ -41,61 +42,40 @@ class HomeController < ApplicationController
 
     case @page
       when @i+=1
-        @title = "% said= (Yes, No)"
-        @titleY = "%"
-        @titleX = "response"
-        @offer_yes = Offer.count(:conditions => "response LIKE 'accepted' OR response LIKE 'paid'")
-        @offer_no = Offer.count(:conditions => "response LIKE 'rejected'")
-        total = ((@offer_yes.to_i+@offer_no.to_i) > 0) ? (@offer_yes.to_i+@offer_no.to_i) : 1
-        @chart_data1 = [["Yes", (@offer_yes.to_i*100/total)], ["No", (@offer_no.to_i*100/total)]]
+        @title = "# Of coupons viewed"
+        @offers_a = Offer.count(:conditions => ["response <> ?", "expired"])
+        @offers_y = Offer.count(:conditions => ["response <> ? and Date(offers.updated_at) = ?", "expired", @today])
+        @chart_data1 = [["Yesterday", @offers_y.to_i], ["Cumulative", @offers_a.to_i]]
       when @i+=1
-        @title = "% Of Yes Hit Get Coupon"
-        @titleY = "%"
-        @titleX = "response"
-        @offer_yes = Offer.count(:conditions => "response LIKE 'accepted'")
-        @offer_paid = Offer.count(:conditions => "response LIKE 'paid'")
-        total = ((@offer_yes.to_i+@offer_paid.to_i) > 0) ? (@offer_yes.to_i+@offer_paid.to_i) : 1
-        @chart_data1 = [["coupon", (@offer_paid.to_i*100/total)]]
+        @title = "Total coupon sales @100% redemption"
+        @todays_coupons = Offer.first(:select => "SUM(price) as dollars", :conditions => ["Date(updated_at) = ? and response LIKE 'paid'", @today])
+        @all_coupons = Offer.first(:select => "SUM(price) as dollars", :conditions => ["response LIKE 'paid'"])
+        @chart_data1 = [["Yesterday", @todays_coupons.dollars.to_i], ["Cumulative", @all_coupons.dollars.to_i]]
       when @i+=1
-        @title = "# of coupons by day"
-        @titleY = "#"
-        @titleX = "date"
-        @payments = Payment.all(:select => "COUNT(id) as total, Date(created_at) as date", :group => "Date(created_at)")
-        @chart_data1 = []
-        for payment in @payments
-          @chart_data1 << [payment.date.to_date.strftime("%b %d"), payment.total.to_i]
-        end
+        @title = "# Coupons <$15"
+        @todays_coupons = Offer.count(:conditions => ["Date(updated_at) = ? and response LIKE 'paid' and price < ?", @today, 15])
+        @all_coupons = Offer.count(:conditions => ["response LIKE 'paid' and price < ?", 15])
+        @chart_data1 = [["Yesterday", @todays_coupons.to_i], ["Cumulative", @all_coupons.to_i]]
       when @i+=1
-        @title = "# Came to SYP Capsule"
-        @offer_today = Offer.first(:select => "SUM(counter) as total", :conditions => "Date(offers.updated_at)='#{Date.today}'")
-        @offer_yesterday = Offer.first(:select => "SUM(counter) as total", :conditions => "Date(offers.updated_at)='#{Date.today - 1.day}'")
-        @chart_data1 = [["Yesterday", @offer_yesterday.total.to_i], ["Today", @offer_today.total.to_i]]
+        @title = "# Coupons $15-29"
+        @todays_coupons = Offer.count(:conditions => ["Date(updated_at) = ? and response LIKE 'paid' and (price >= ? and price <= ?)", @today, 15, 29])
+        @all_coupons = Offer.count(:conditions => ["response LIKE 'paid' and (price >= ? and price <= ?)", 15, 29])
+        @chart_data1 = [["Yesterday", @todays_coupons.to_i], ["Cumulative", @all_coupons.to_i]]
       when @i+=1
-        @title = "# Started Negotiating"
-        @offer_today = Offer.first(:select => "SUM(counter) as total", :conditions => "Date(offers.updated_at)='#{Date.today}'")
-        @offer_yesterday = Offer.first(:select => "SUM(counter) as total", :conditions => "Date(offers.updated_at)='#{Date.today - 1.day}'")
-        @chart_data1 = [["Yesterday", @offer_yesterday.total.to_i], ["Today", @offer_today.total.to_i]]
+        @title = "# Coupons $30-39"
+        @todays_coupons = Offer.count(:conditions => ["Date(updated_at) = ? and response LIKE 'paid' and (price >= ? and price <= ?)", @today, 30, 39])
+        @all_coupons = Offer.count(:conditions => ["response LIKE 'paid' and (price >= ? and price <= ?)", 30, 39])
+        @chart_data1 = [["Yesterday", @todays_coupons.to_i], ["Cumulative", @all_coupons.to_i]]
       when @i+=1
-        @title = "# Reached Pricing Agreement"
-        @offer_today = Offer.first(:select => "SUM(counter) as total", :conditions => "offers.response='paid' and Date(offers.updated_at)='#{Date.today}'")
-        @offer_yesterday = Offer.first(:select => "SUM(counter) as total", :conditions => "offers.response='paid' and Date(offers.updated_at)='#{Date.today - 1.day}'")
-        @chart_data1 = [["Yesterday", @offer_yesterday.total.to_i], ["Today", @offer_today.total.to_i]]
-      when @i+=1
-        @title = "# Completed Sale"
-        @offer_today = Payment.first(:select => "COUNT(id) as total", :conditions => "Date(payments.updated_at)='#{Date.today}'")
-        @offer_yesterday = Payment.first(:select => "COUNT(id) as total", :conditions => "Date(payments.updated_at)='#{Date.today - 1.day}'")
-        @chart_data1 = [["Yesterday", @offer_yesterday.total.to_i], ["Today", @offer_today.total.to_i]]
-      when @i+=1
-        @title = "$ Completed Sales"
-        @titleY = "$"
-        @offer_today = Payment.first(:select => "SUM(price) as total", :conditions => "Date(payments.updated_at)='#{Date.today}'")
-        @offer_yesterday = Payment.first(:select => "SUM(price) as total", :conditions => "Date(payments.updated_at)='#{Date.today - 1.day}'")
-        @chart_data1 = [["Yesterday", @offer_yesterday.total.to_i], ["Today", @offer_today.total.to_i]]
+        @title = "# Coupons $40+"
+        @todays_coupons = Offer.count(:conditions => ["Date(updated_at) = ? and response LIKE 'paid' and price >= ?", @today, 40])
+        @all_coupons = Offer.count(:conditions => ["response LIKE 'paid' and price >= ?", 40])
+        @chart_data1 = [["Yesterday", @todays_coupons.to_i], ["Cumulative", @all_coupons.to_i]]
       else
-        @title = "# Came to SYP Capsule"
-        @offer_today = Offer.first(:select => "SUM(counter) as total", :conditions => "Date(offers.updated_at)='#{Date.today}'")
-        @offer_yesterday = Offer.first(:select => "SUM(counter) as total", :conditions => "Date(offers.updated_at)='#{Date.today - 1.day}'")
-        @chart_data1 = [["Yesterday", @offer_yesterday.total.to_i], ["Today", @offer_today.total.to_i]]
+        @title = "# Of coupons viewed"
+        @offers_a = Offer.count(:conditions => ["response <> ?", "expired"])
+        @offers_y = Offer.count(:conditions => ["response <> ? and Date(offers.updated_at) = ?", "expired", @today])
+        @chart_data1 = [["Yesterday", @offers_y.to_i], ["Cumulative", @offers_a.to_i]]
     end
   end
 
