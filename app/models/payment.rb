@@ -5,7 +5,7 @@ class Payment < ActiveRecord::Base
   validates_format_of :email, :if => :email, :with => /\A([^@\s]+)@((?:[-a-z0-9]+\.)+[a-z]{2,})\Z/i
 
   def new_expiry_date
-    @dates = ["2011-03-31", (self.created_at + 3.days), (self.created_at + 1.week)]
+    @dates = ["2011-03-31", (self.created_at + 2.week), (self.created_at + 1.week)]
     return @dates[rand(99)%@dates.size]
   end
 end
