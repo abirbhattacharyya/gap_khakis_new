@@ -1,6 +1,7 @@
 <% product = capsule %>
-<% @last_offer = product.offers.last(:conditions => ["ip = ?", request.remote_ip]) %>
-<% @offer = product.offers.last(:conditions => ["ip = ? and response IS NULL", request.remote_ip]) %>
+<% offer_token = (session[:_csrf_token] ||= ActiveSupport::SecureRandom.base64(32)) %>
+<% @last_offer = product.offers.last(:conditions => ["ip = ? and token = ?", request.remote_ip, offer_token]) %>
+<% @offer = product.offers.last(:conditions => ["ip = ? and token =? and response IS NULL", request.remote_ip, offer_token]) %>
 
 <div class="capsule2">
     <div class="cinner">
