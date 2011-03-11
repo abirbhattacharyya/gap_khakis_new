@@ -139,6 +139,8 @@ class ProductsController < ApplicationController
         redirect_to root_path
         return
       end
+          #avg_offer = @product.offers.last(:select => "AVG(price) as avg_price", :conditions => ["response = ?", 'paid'])
+          #render :text => avg_offer.avg_price.inspect and return false
       @last_offer = @product.offers.last(:conditions => ["ip = ?", request.remote_ip])
       if request.post?
 #        render :text => (session[:_csrf_token] ||= ActiveSupport::SecureRandom.base64(32)).inspect and return false
@@ -184,12 +186,18 @@ class ProductsController < ApplicationController
                         @price_codes << price_code if(price_code > @offer.price and price_code < @last_offer.price)
                       end
                     else
-                      if avg_offer.avg_price.to_f < @product.target_price
-                        for price_code in @product.new_price_points
-                          @price_codes << price_code if(price_code > @offer.price and price_code < @last_offer.price)
+                      if price < @product.target_price
+                        if avg_offer.avg_price.to_f < @product.target_price
+                          for price_code in @product.new_price_points
+                            @price_codes << price_code if(price_code > @offer.price and price_code < @last_offer.price)
+                          end
+                        else
+                          for price_code in PromotionCode::PRICE_CODES_MIN
+                            @price_codes << price_code if(price_code > @offer.price and price_code < @last_offer.price)
+                          end
                         end
                       else
-                        for price_code in PromotionCode::PRICE_CODES_MIN
+                        for price_code in @product.new_price_points
                           @price_codes << price_code if(price_code > @offer.price and price_code < @last_offer.price)
                         end
                       end
@@ -199,15 +207,14 @@ class ProductsController < ApplicationController
                       @new_offer = @price_codes[rand(999)%@price_codes.size]
                       if @new_offer == @last_offer.price or @new_offer <= price
                         @last_offer.update_attributes(:price => @new_offer, :response => "accepted")
-                        flash[:notice] = "Cool, come on down to the store!"
-                        return
-                      end
-                      @last_offer.update_attributes(:price => @new_offer, :counter => (@last_offer.counter + 1))
-                      if((rand(999)%2) == 1)
-                        @last_offer.update_attributes(:response => "last")
                       else
-                        if @new_offer <= @offer.product.target_price
+                        @last_offer.update_attributes(:price => @new_offer, :counter => (@last_offer.counter + 1))
+                        if((rand(999)%2) == 1)
                           @last_offer.update_attributes(:response => "last")
+                        else
+                          if @new_offer <= @offer.product.target_price
+                            @last_offer.update_attributes(:response => "last")
+                          end
                         end
                       end
                     elsif price >= @product.target_price
@@ -215,14 +222,6 @@ class ProductsController < ApplicationController
                     else
                       @last_offer.update_attribute(:response, "accepted")
                     end
-                    if @last_offer.last?
-                      flash[:notice] = "Hey, the best we can do is $#{@last_offer.price.ceil.to_i}. Deal?"
-                    elsif @last_offer.accepted?
-                      flash[:notice] = "Cool, come on down to the store!"
-                    else
-                      flash[:notice] = "Hey, we can do #{(@last_offer.price.ceil.to_i > 0) ? "$#{@last_offer.price.ceil.to_i}" : "Free of cost"} ? Deal?"
-                    end
-                    return
                 else
                     flash[:notice] = "Hey, please enter an offer greater than the last one!"
                     return
@@ -233,55 +232,76 @@ class ProductsController < ApplicationController
           else
               @offer = Offer.new(:ip => request.remote_ip, :product_id => @product.id, :price => price, :counter => 1)
               @offer.save
-          end
-          if(price <= @product.min_price)
-              if avg_offer.avg_price
-                if avg_offer.avg_price.to_f >= @product.target_price
-                  @price_codes = []
-                  for price_code in PromotionCode::PRICE_CODES_MIN
-                    @price_codes << price_code if(price_code > price)
+              
+              if(price <= @product.min_price)
+                  if avg_offer.avg_price
+                    if avg_offer.avg_price.to_f >= @product.target_price
+                      @price_codes = []
+                      for price_code in PromotionCode::PRICE_CODES_MIN
+                        @price_codes << price_code if(price_code > price)
+                      end
+                      @new_offer = @price_codes[rand(999)%@price_codes.size]
+                      Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "counter", :counter => 1)
+                      flash[:notice] = "Hey, we can do $#{@new_offer}? Deal?"
+                    else
+                      @new_offer = ((@product.ticketed_retail == 49.5) ? 45 : 59)
+                      Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "last", :counter => 1)
+                      flash[:notice] = "Hi $#{price} is too low. How about $#{@new_offer}"
+                    end
+                  else
+                    @new_offer = ((@product.ticketed_retail == 49.5) ? 45 : 59)
+                    Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "last", :counter => 1)
+                    flash[:notice] = "Hi $#{price} is too low. How about $#{@new_offer}"
                   end
-                  @new_offer = @price_codes[rand(999)%@price_codes.size]
+              elsif(price >= reg_price)
+                  @new_offer = ((@product.ticketed_retail == 49.5) ? 45 : 55)
                   Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "counter", :counter => 1)
-                  flash[:notice] = "Hey, we can do $#{@new_offer}? Deal?"
-                else
-                  @new_offer = ((@product.ticketed_retail == 49.5) ? 45 : 59)
-                  Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "last", :counter => 1)
-                  flash[:notice] = "Hi $#{price} is too low. How about $#{@new_offer}"
-                end
+                  @counter_offer = @product.offers.last(:conditions => ["ip = ? and response = ?", request.remote_ip, 'counter'])
+                  for offer in @product.offers.all(:conditions => ["ip = (?) and id <= ? and (response IS NULL OR response LIKE 'counter')", request.remote_ip, @offer.id])
+                    offer.update_attribute(:response, "expired") unless ["paid", "accepted", "rejected"].include? offer.response
+                  end
+                  @counter_offer.update_attribute(:response, "accepted")
+                  flash[:notice] = "Cool, come on down to the store!"
               else
-                @new_offer = ((@product.ticketed_retail == 49.5) ? 45 : 59)
-                Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "last", :counter => 1)
-                flash[:notice] = "Hi $#{price} is too low. How about $#{@new_offer}"
+                  if avg_offer.avg_price.nil?
+                    @new_offer = @product.new_price_points[rand(999)%@product.new_price_points.size]
+                  else
+                    if price < @product.target_price
+                      if avg_offer.avg_price.to_f < @product.target_price
+                        @new_offer = @product.new_price_points[rand(999)%@product.new_price_points.size]
+                      else
+                        @new_offer = PromotionCode::PRICE_CODES_MIN[rand(999)%PromotionCode::PRICE_CODES_MIN.size]
+                      end
+                    else
+                      @price_codes = []
+                      for price_code in @product.new_price_points
+                        @price_codes << price_code if(price_code > price)
+                      end
+                      @new_offer = @price_codes[rand(999)%@price_codes.size]
+                    end
+                  end
+                  if @new_offer == @product.target_price
+                    Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "last", :counter => 1)
+                    flash[:notice] = "Hey, the best we can do is $#{@new_offer}. Deal?"
+                  elsif price >= @new_offer
+                    Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "accepted", :counter => 1)
+                    flash[:notice] = "Cool, come on down to the store!"
+                  else
+                    Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "counter", :counter => 1)
+                    flash[:notice] = "Hey, we can do $#{@new_offer}? Deal?"
+                  end
               end
-          elsif(price >= reg_price)
-              @new_offer = ((@product.ticketed_retail == 49.5) ? 45 : 55)
-              Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "counter", :counter => 1)
-              @counter_offer = @product.offers.last(:conditions => ["ip = ? and response = ?", request.remote_ip, 'counter'])
-              for offer in @product.offers.all(:conditions => ["ip = (?) and id <= ? and (response IS NULL OR response LIKE 'counter')", request.remote_ip, @offer.id])
-                offer.update_attribute(:response, "expired") unless ["paid", "accepted", "rejected"].include? offer.response
-              end
-              @counter_offer.update_attribute(:response, "accepted")
-              flash[:notice] = "Cool, come on down to the store!"
-          else
-              if avg_offer.avg_price.nil?
-                @new_offer = @product.new_price_points[rand(999)%@product.new_price_points.size]
-              else
-                if avg_offer.avg_price.to_f < @product.target_price
-                  @new_offer = @product.new_price_points[rand(999)%@product.new_price_points.size]
-                else
-                  @new_offer = PromotionCode::PRICE_CODES_MIN[rand(999)%PromotionCode::PRICE_CODES_MIN.size]
-                end
-              end
-              if @new_offer == @product.target_price
-                Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "last", :counter => 1)
-                flash[:notice] = "Hey, the best we can do is $#{@new_offer}. Deal?"
-              else
-                Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "counter", :counter => 1)
-                flash[:notice] = "Hey, we can do $#{@new_offer}? Deal?"
-              end
+              return
           end
           @last_offer = @product.offers.last(:conditions => ["ip = ?", request.remote_ip])
+          if @last_offer.last?
+            flash[:notice] = "Hey, the best we can do is $#{@last_offer.price.ceil.to_i}. Deal?"
+          elsif @last_offer.accepted?
+            flash[:notice] = "Cool, come on down to the store!"
+          else
+            flash[:notice] = "Hey, we can do #{(@last_offer.price.ceil.to_i > 0) ? "$#{@last_offer.price.ceil.to_i}" : "Free of cost"}? Deal?"
+          end
+          return
         end
       end
     end
