@@ -12,7 +12,7 @@ class Notification < ActionMailer::Base
   end
 
   def sendcoupon(recipient, payment)
-    subject    'myprice coupon you requested'
+    subject    'Your Say Your Price Coupon'
     #recipients recipient
     bcc recipient
     from       sender_email

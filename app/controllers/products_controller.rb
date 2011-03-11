@@ -70,6 +70,7 @@ class ProductsController < ApplicationController
         @payment = Payment.find(params[:id])
         if @payment.update_attributes(params[:payment])
           Notification.deliver_sendcoupon(@payment.email, @payment)
+          flash[:notice] = "Cool! Emailed your coupon. See you at the store soon."
           return
         else
           @payment.email = nil
@@ -139,6 +140,8 @@ class ProductsController < ApplicationController
       end
       @last_offer = @product.offers.last(:conditions => ["ip = ?", request.remote_ip])
       if request.post?
+#        render :text => (session[:_csrf_token] ||= ActiveSupport::SecureRandom.base64(32)).inspect and return false
+
         if @last_offer and @last_offer.accepted?
           return
         end
@@ -150,7 +153,7 @@ class ProductsController < ApplicationController
               flash[:error] = "Sorry we can't make a deal right now. Try again later?"
             elsif submit == "yes"
               @last_offer.update_attribute(:response, "accepted")
-              flash[:notice] = "Cool, come on down to the store!"
+              flash[:notice] = (@last_offer.price == 0) ? "Cool! Congrats! you won free Gap khakis. Share with facebook /twitter friends!" : "Cool, come on down to the store!"
             end
             for offer in @product.offers.all(:conditions => ["ip = (?) and id < ? and (response IS NULL OR response LIKE 'counter')", request.remote_ip, @last_offer.id])
               offer.update_attribute(:response, "expired") unless ["paid", "accepted", "rejected"].include? offer.response
