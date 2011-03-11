@@ -139,7 +139,7 @@ class ProductsController < ApplicationController
         redirect_to root_path
         return
       end
-          #avg_offer = @product.offers.last(:select => "AVG(price) as avg_price", :conditions => ["response = ?", 'paid'])
+          #avg_offer = Offer.last(:select => "AVG(price) as avg_price", :conditions => ["response = ?", 'paid'])
           #render :text => avg_offer.avg_price.inspect and return false
       @last_offer = @product.offers.last(:conditions => ["ip = ?", request.remote_ip])
       if request.post?
@@ -193,7 +193,13 @@ class ProductsController < ApplicationController
                           end
                         else
                           for price_code in PromotionCode::PRICE_CODES_MIN
-                            @price_codes << price_code if(price_code > @offer.price and price_code < @last_offer.price)
+                            if(price_code > @offer.price and price_code < @last_offer.price)
+                              if(Offer.min_offers_of(10).count >= (Offer.paid_offers.count*0.02).ceil)
+                                @price_codes << price_code if price_code > 10
+                              else
+                                @price_codes << price_code
+                              end
+                            end
                           end
                         end
                       else
@@ -211,16 +217,10 @@ class ProductsController < ApplicationController
                         @last_offer.update_attributes(:price => @new_offer, :counter => (@last_offer.counter + 1))
                         if((rand(999)%2) == 1)
                           @last_offer.update_attributes(:response => "last")
-                        else
-                          if @new_offer <= @offer.product.target_price
-                            @last_offer.update_attributes(:response => "last")
-                          end
                         end
                       end
-                    elsif price >= @product.target_price
-                      @last_offer.update_attributes(:response => "last")
                     else
-                      @last_offer.update_attribute(:response, "accepted")
+                      @last_offer.update_attributes(:response => "last")
                     end
                 else
                     flash[:notice] = "Hey, please enter an offer greater than the last one!"
@@ -238,7 +238,13 @@ class ProductsController < ApplicationController
                     if avg_offer.avg_price.to_f >= @product.target_price
                       @price_codes = []
                       for price_code in PromotionCode::PRICE_CODES_MIN
-                        @price_codes << price_code if(price_code > price)
+                        if(price_code > price)
+                          if(Offer.min_offers_of(10).count >= (Offer.paid_offers.count*0.02).ceil)
+                            @price_codes << price_code if price_code > 10
+                          else
+                            @price_codes << price_code
+                          end
+                        end
                       end
                       @new_offer = @price_codes[rand(999)%@price_codes.size]
                       Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "counter", :counter => 1)
@@ -261,24 +267,38 @@ class ProductsController < ApplicationController
                     offer.update_attribute(:response, "expired") unless ["paid", "accepted", "rejected"].include? offer.response
                   end
                   @counter_offer.update_attribute(:response, "accepted")
-                  flash[:notice] = "Cool, come on down to the store!"
+                  if price >= @product.ticketed_retail
+                    flash[:notice] = "Hey, don't overspend. Yours for only $#{@new_offer}"
+                  else
+                    flash[:notice] = "Cool, come on down to the store!"
+                  end
               else
                   if avg_offer.avg_price.nil?
                     @new_offer = @product.new_price_points[rand(999)%@product.new_price_points.size]
                   else
+                    @price_codes = []
                     if price < @product.target_price
                       if avg_offer.avg_price.to_f < @product.target_price
-                        @new_offer = @product.new_price_points[rand(999)%@product.new_price_points.size]
+                        for price_code in @product.new_price_points
+                          @price_codes << price_code
+                        end
                       else
-                        @new_offer = PromotionCode::PRICE_CODES_MIN[rand(999)%PromotionCode::PRICE_CODES_MIN.size]
+                        for price_code in PromotionCode::PRICE_CODES_MIN
+                          if(price_code > @offer.price and price_code < @last_offer.price)
+                            if(Offer.min_offers_of(10).count >= (Offer.paid_offers.count*0.02).ceil)
+                              @price_codes << price_code if price_code > 10
+                            else
+                              @price_codes << price_code
+                            end
+                          end
+                        end
                       end
                     else
-                      @price_codes = []
                       for price_code in @product.new_price_points
                         @price_codes << price_code if(price_code > price)
                       end
-                      @new_offer = @price_codes[rand(999)%@price_codes.size]
                     end
+                    @new_offer = @price_codes[rand(999)%@price_codes.size]
                   end
                   if @new_offer == @product.target_price
                     Offer.create(:ip => request.remote_ip, :product_id => @product.id, :price => @new_offer, :response => "last", :counter => 1)
