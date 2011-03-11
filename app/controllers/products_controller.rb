@@ -71,6 +71,7 @@ class ProductsController < ApplicationController
         if @payment.update_attributes(params[:payment])
           Notification.deliver_sendcoupon(@payment.email, @payment)
           flash[:notice] = "Cool! Emailed your coupon. See you at the store soon."
+          redirect_to say_your_price_path
           return
         else
           @payment.email = nil
