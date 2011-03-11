@@ -233,6 +233,7 @@ class ProductsController < ApplicationController
           else
               @offer = Offer.new(:ip => request.remote_ip, :token => offer_token, :product_id => @product.id, :price => price, :counter => 1)
               @offer.save
+              @last_offer = @product.offers.last(:conditions => ["ip = ? and token = ?", request.remote_ip, offer_token])
               
               if(price <= @product.min_price)
                   if avg_offer.avg_price
